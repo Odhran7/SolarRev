@@ -21,6 +21,7 @@ wheels/
 *.egg
 venv/
 .env
+*.log
 
 # Node/Frontend
 node_modules/

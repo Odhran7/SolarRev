@@ -1,0 +1,4 @@
+2024-11-28 11:52:10 | ERROR    | app.services.elevation_client.elevation_client:_fetch_from_open_topo:114 - OpenTopo API error: 429
+2024-11-28 11:52:10 | ERROR    | app.services.elevation_client.elevation_client:_fetch_from_open_topo:114 - OpenTopo API error: 400
+2024-11-28 11:54:41 | ERROR    | app.services.elevation_client.elevation_client:_fetch_elevation_batch:94 - API error: 400
+2024-11-28 11:55:09 | ERROR    | app.services.elevation_client.elevation_client:_fetch_elevation_batch:94 - API error: 400
