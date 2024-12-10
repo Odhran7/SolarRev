@@ -1,6 +1,5 @@
 // src/app/layout.tsx
-import './globals.css';
-import 'leaflet/dist/leaflet.css';
+import "./globals.css";
 
 export default function RootLayout({
   children,
@@ -8,8 +7,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html>
+      <body>
+        {children}
+      </body>
     </html>
   );
 }
