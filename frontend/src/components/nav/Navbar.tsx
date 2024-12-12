@@ -20,8 +20,14 @@ const Navbar = () => {
           <NavigationMenuItem>
             <NavigationMenuTrigger>Metric System</NavigationMenuTrigger>
             <NavigationMenuContent>
-              <NavigationMenuLink>Metric</NavigationMenuLink>
-              <NavigationMenuLink>Imperial</NavigationMenuLink>
+              <NavigationMenuLink>
+                <ul className="w-[200px]">
+                  <li className="p-1 hover:bg-gray-100 cursor-pointer">
+                    Metric System
+                  </li>
+                  <li className="p-1 hover:bg-gray-100 cursor-pointer">Imperial System</li>
+                </ul>
+              </NavigationMenuLink>
             </NavigationMenuContent>
           </NavigationMenuItem>
         </NavigationMenuList>
