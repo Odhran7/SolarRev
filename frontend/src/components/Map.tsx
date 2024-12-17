@@ -27,6 +27,7 @@ const Map: React.FC<MapProps> = ({
   const [zoom, setZoom] = useState(initialZoom);
   const [center, setCenter] = useState(initialCenter);
   const [pitch, setPitch] = useState(initialPitch);
+  const [area, setArea] = useState<number | null>(null);
 
   const findPolygonCenter = (coords: Position[]) => {
     const closedCoords =
@@ -49,6 +50,7 @@ const Map: React.FC<MapProps> = ({
 
     const polygon = turf.polygon([closedCoords]);
     const area = turf.area(polygon);
+    setArea(area);
     const bbox = turf.bbox(polygon);
     let zoom;
     if (area < 1000) {
@@ -215,10 +217,13 @@ const Map: React.FC<MapProps> = ({
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
       {coordinates.length > 0 && (
-        <div className="absolute top-4 left-24 bg-white p-2 rounded shadow z-20">
+        <div className="absolute top-4 left-24 bg-white p-2 rounded shadow z-20 w-full">
           <div>Coordinates: {coordinates.toString()}</div>
           <div>Pitch: {pitch}°</div>
           <div>Zoom: {zoom}</div>
+          {area  && (
+            <div>Area: {area}</div>
+          )}
         </div>
       )}
     </div>
