@@ -14,12 +14,14 @@ interface MapProps {
   initialCenter?: [number, number];
   initialZoom?: number;
   initialPitch?: number;
+  bounds?: [number, number, number, number];
 }
 
 const Map: React.FC<MapProps> = ({
   initialCenter = [-8.2439, 53.4129],
   initialZoom = 7,
   initialPitch = 45,
+  bounds = [-10.76, 51.35, -5.34, 55.45],
 }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
@@ -70,9 +72,9 @@ const Map: React.FC<MapProps> = ({
     if (zoom >= 16) {
       pitch = 60;
     } else if (zoom >= 12) {
-      pitch = 50; 
+      pitch = 50;
     } else {
-      pitch = 45; 
+      pitch = 45;
     }
 
     const bearing = turf.bearing(
@@ -129,8 +131,10 @@ const Map: React.FC<MapProps> = ({
         },
         sky: {},
       },
+      maxBounds: bounds,
       maxZoom: 18,
       maxPitch: 85,
+      minZoom: 5,
     });
 
     mapRef.current = map;
@@ -138,6 +142,36 @@ const Map: React.FC<MapProps> = ({
     const drawControl = new MaplibreMeasureControl({
       modes: ["polygon", "delete"],
       open: true,
+    });
+
+    // Adding Pvout layer
+    map.on("load", () => {
+      map.addSource("uk-solar", {
+        type: "raster",
+        url: "/UK_PVOUT_3857.tif", // Update this path
+      });
+      map.addLayer({
+        id: "uk-solar-layer",
+        type: "raster",
+        source: "uk-solar",
+        paint: {
+          "raster-opacity": 0.7,
+        },
+      });
+
+      // Add Ireland TIFF
+      map.addSource("ireland-solar", {
+        type: "raster",
+        url: "/PVOUT_3857.tif", 
+      });
+      map.addLayer({
+        id: "ireland-solar-layer",
+        type: "raster",
+        source: "ireland-solar",
+        paint: {
+          "raster-opacity": 0.7,
+        },
+      });
     });
 
     map.addControl(drawControl, "top-left");
@@ -169,7 +203,7 @@ const Map: React.FC<MapProps> = ({
             speed: 0.6,
             curve: 1.5,
             easing(t) {
-              return t * (2 - t); 
+              return t * (2 - t);
             },
             essential: true,
           });
@@ -221,9 +255,7 @@ const Map: React.FC<MapProps> = ({
           <div>Coordinates: {coordinates.toString()}</div>
           <div>Pitch: {pitch}°</div>
           <div>Zoom: {zoom}</div>
-          {area  && (
-            <div>Area: {area}</div>
-          )}
+          {area && <div>Area: {area}</div>}
         </div>
       )}
     </div>
