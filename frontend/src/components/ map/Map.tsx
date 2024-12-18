@@ -9,6 +9,10 @@ import "@watergis/maplibre-gl-terradraw/dist/maplibre-gl-terradraw.css";
 import { Position } from "geojson";
 import * as turf from "@turf/turf";
 import { LngLatLike } from "maplibre-gl";
+// Geojson data
+import transform from "@/utils/transform";
+import solarData from "@/constants/solar_plants/solar_projects.json";
+const geoJson = transform(solarData);
 
 interface MapProps {
   initialCenter?: [number, number];
@@ -41,6 +45,21 @@ const Map: React.FC<MapProps> = ({
     const polygon = turf.polygon([closedCoords]);
     const center = turf.centroid(polygon);
     return center.geometry.coordinates as number[];
+  };
+
+  const getMarkerSize = (capacity: number) => {
+    if (capacity >= 100) return 24;
+    if (capacity >= 50) return 20;
+    if (capacity >= 20) return 16;
+    return 12;
+  };
+  const getStatusColor = (status: string) => {
+    if (status.includes("operating")) return "#22c55e"; // green
+    if (status.includes("construction")) return "#eab308"; // yellow
+    if (status.includes("announced") || status.includes("pre-construction"))
+      return "#3b82f6"; // blue
+    if (status.includes("shelved")) return "#ef4444"; // red
+    return "#94a3b8"; // gray default
   };
 
   const calculateViewParameters = (coords: Position[]) => {
@@ -144,33 +163,106 @@ const Map: React.FC<MapProps> = ({
       open: true,
     });
 
-    // Adding Pvout layer
-    map.on("load", () => {
-      map.addSource("uk-solar", {
-        type: "raster",
-        url: "/UK_PVOUT_3857.tif", // Update this path
-      });
-      map.addLayer({
-        id: "uk-solar-layer",
-        type: "raster",
-        source: "uk-solar",
-        paint: {
-          "raster-opacity": 0.7,
-        },
+    map.on("load", async () => {
+      // Todo add pvout layer^^
+      // Adding the markers
+      map.addSource("places", {
+        type: "geojson",
+        data: geoJson,
       });
 
-      // Add Ireland TIFF
-      map.addSource("ireland-solar", {
-        type: "raster",
-        url: "/PVOUT_3857.tif", 
-      });
       map.addLayer({
-        id: "ireland-solar-layer",
-        type: "raster",
-        source: "ireland-solar",
+        id: "places",
+        type: "circle",
+        source: "places",
         paint: {
-          "raster-opacity": 0.7,
-        },
+          // Size based on MW capacity
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['get', 'capacity'],
+            0, 5,    // 0 MW = 5px radius
+            50, 10,  // 50 MW = 10px radius
+            100, 15  // 100+ MW = 15px radius
+          ],
+          // Color based on status
+          'circle-color': [
+            'match',
+            ['get', 'status'],
+            'operating', '#22c55e',
+            'construction', '#eab308',
+            'announced', '#3b82f6',
+            'pre-construction', '#3b82f6',
+            'shelved', '#ef4444',
+            '#94a3b8'  // default color
+          ],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'white'
+        }
+      });
+    
+      const legend = document.createElement("div");
+      legend.className =
+        "absolute bottom-4 right-4 bg-white p-4 rounded shadow";
+      legend.innerHTML = `
+        <div class="text-sm font-bold mb-2">Solar Farm Status</div>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full" style="background-color: #22c55e"></div>
+            <span class="text-sm">Operating</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full" style="background-color: #eab308"></div>
+            <span class="text-sm">Under Construction</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full" style="background-color: #3b82f6"></div>
+            <span class="text-sm">Announced/Pre-construction</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full" style="background-color: #ef4444"></div>
+            <span class="text-sm">Shelved</span>
+          </div>
+        </div>
+        <div class="text-sm font-bold mt-4 mb-2">Capacity</div>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-full border-2 border-gray-400"></div>
+            <span class="text-sm">≥ 100 MW</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded-full border-2 border-gray-400"></div>
+            <span class="text-sm">50-99 MW</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full border-2 border-gray-400"></div>
+            <span class="text-sm">20-49 MW</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full border-2 border-gray-400"></div>
+            <span class="text-sm">< 20 MW</span>
+          </div>
+        </div>
+      `;
+      mapContainer.current.appendChild(legend);
+
+      const popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+      });
+      map.on("mouseleave", "places", () => {
+        map.getCanvas().style.cursor = "";
+        popup.remove();
+      });
+
+      map.on("mouseenter", "places", (e) => {
+        map.getCanvas().style.cursor = "pointer";
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const description = e.features[0].properties.description;
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+        popup.setLngLat(coordinates).setHTML(description).addTo(map);
       });
     });
 
