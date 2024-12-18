@@ -9,6 +9,7 @@ import "@watergis/maplibre-gl-terradraw/dist/maplibre-gl-terradraw.css";
 import { Position } from "geojson";
 import * as turf from "@turf/turf";
 import { LngLatLike } from "maplibre-gl";
+import Legend from "./Legend";
 // Geojson data
 import transform from "@/utils/transform";
 import solarData from "@/constants/solar_plants/solar_projects.json";
@@ -25,7 +26,6 @@ const Map: React.FC<MapProps> = ({
   initialCenter = [-8.2439, 53.4129],
   initialZoom = 7,
   initialPitch = 45,
-  bounds = [-10.76, 51.35, -5.34, 55.45],
 }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
@@ -34,6 +34,8 @@ const Map: React.FC<MapProps> = ({
   const [center, setCenter] = useState(initialCenter);
   const [pitch, setPitch] = useState(initialPitch);
   const [area, setArea] = useState<number | null>(null);
+  const [showPower, setShowPower] = useState(false);
+  const [showSubstation, setShowSubstation] = useState(false);
 
   const findPolygonCenter = (coords: Position[]) => {
     const closedCoords =
@@ -45,21 +47,6 @@ const Map: React.FC<MapProps> = ({
     const polygon = turf.polygon([closedCoords]);
     const center = turf.centroid(polygon);
     return center.geometry.coordinates as number[];
-  };
-
-  const getMarkerSize = (capacity: number) => {
-    if (capacity >= 100) return 24;
-    if (capacity >= 50) return 20;
-    if (capacity >= 20) return 16;
-    return 12;
-  };
-  const getStatusColor = (status: string) => {
-    if (status.includes("operating")) return "#22c55e"; // green
-    if (status.includes("construction")) return "#eab308"; // yellow
-    if (status.includes("announced") || status.includes("pre-construction"))
-      return "#3b82f6"; // blue
-    if (status.includes("shelved")) return "#ef4444"; // red
-    return "#94a3b8"; // gray default
   };
 
   const calculateViewParameters = (coords: Position[]) => {
@@ -150,7 +137,6 @@ const Map: React.FC<MapProps> = ({
         },
         sky: {},
       },
-      maxBounds: bounds,
       maxZoom: 18,
       maxPitch: 85,
       minZoom: 5,
@@ -177,75 +163,70 @@ const Map: React.FC<MapProps> = ({
         source: "places",
         paint: {
           // Size based on MW capacity
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['get', 'capacity'],
-            0, 5,    // 0 MW = 5px radius
-            50, 10,  // 50 MW = 10px radius
-            100, 15  // 100+ MW = 15px radius
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["get", "capacity"],
+            0,
+            5,
+            50,
+            10,
+            100,
+            15,
           ],
-          // Color based on status
-          'circle-color': [
-            'match',
-            ['get', 'status'],
-            'operating', '#22c55e',
-            'construction', '#eab308',
-            'announced', '#3b82f6',
-            'pre-construction', '#3b82f6',
-            'shelved', '#ef4444',
-            '#94a3b8'  // default color
+          "circle-color": [
+            "match",
+            ["get", "status"],
+            "operating",
+            "#22c55e",
+            "construction",
+            "#eab308",
+            "announced",
+            "#3b82f6",
+            "pre-construction",
+            "#3b82f6",
+            "shelved",
+            "#ef4444",
+            "#94a3b8",
           ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': 'white'
-        }
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "white",
+        },
       });
-    
-      const legend = document.createElement("div");
-      legend.className =
-        "absolute bottom-4 right-4 bg-white p-4 rounded shadow";
-      legend.innerHTML = `
-        <div class="text-sm font-bold mb-2">Solar Farm Status</div>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded-full" style="background-color: #22c55e"></div>
-            <span class="text-sm">Operating</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded-full" style="background-color: #eab308"></div>
-            <span class="text-sm">Under Construction</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded-full" style="background-color: #3b82f6"></div>
-            <span class="text-sm">Announced/Pre-construction</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded-full" style="background-color: #ef4444"></div>
-            <span class="text-sm">Shelved</span>
-          </div>
-        </div>
-        <div class="text-sm font-bold mt-4 mb-2">Capacity</div>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-full border-2 border-gray-400"></div>
-            <span class="text-sm">≥ 100 MW</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-5 h-5 rounded-full border-2 border-gray-400"></div>
-            <span class="text-sm">50-99 MW</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded-full border-2 border-gray-400"></div>
-            <span class="text-sm">20-49 MW</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full border-2 border-gray-400"></div>
-            <span class="text-sm">< 20 MW</span>
-          </div>
-        </div>
-      `;
-      mapContainer.current.appendChild(legend);
-
+      map.addSource("openinframap", {
+        type: "vector",
+        tiles: ["https://openinframap.org/tiles/{z}/{x}/{y}.pbf"],
+        minzoom: 0,
+        maxzoom: 14,
+      });
+      map.addLayer({
+        id: "substations",
+        source: "openinframap",
+        "source-layer": "power_substation",
+        layout: {
+          visibility: "none",
+        },
+        minzoom: 10,
+        type: "circle",
+        paint: {
+          "circle-color": "#0000ff",
+          "circle-radius": 6,
+        },
+      });
+      // Power lines
+      map.addLayer({
+        id: "power-lines",
+        source: "openinframap",
+        "source-layer": "power_line",
+        type: "line",
+        layout: {
+          visibility: "none",
+        },
+        paint: {
+          "line-color": "#ff0000",
+          "line-width": 2,
+        },
+      });
       const popup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
@@ -339,9 +320,28 @@ const Map: React.FC<MapProps> = ({
     };
   }, [initialCenter, initialZoom, initialPitch]);
 
+  // Layer toggling
+  useEffect(() => {
+    if (!mapRef.current?.isStyleLoaded()) return;
+    mapRef.current?.setLayoutProperty(
+      "power-lines",
+      "visibility",
+      showPower ? "visible" : "none"
+    );
+    mapRef.current?.setLayoutProperty(
+      "substations",
+      "visibility",
+      showSubstation ? "visible" : "none"
+    );
+  }, [showPower, showSubstation]);
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
+      <Legend
+        handlePowerLines={setShowPower}
+        handleSubstation={setShowSubstation}
+      />
       {coordinates.length > 0 && (
         <div className="absolute top-4 left-24 bg-white p-2 rounded shadow z-20 w-full">
           <div>Coordinates: {coordinates.toString()}</div>
