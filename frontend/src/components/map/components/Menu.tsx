@@ -9,7 +9,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar";
 
-export const Navbar = () => {
+export const Menu = () => {
   const [isMetricSystem, setMetricSystem] = useState(true);
   return (
     <Menubar className="py-2 gap-x-3">

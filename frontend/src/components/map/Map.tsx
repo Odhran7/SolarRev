@@ -12,14 +12,16 @@ import { INITIAL_MAP_CONFIG, BASE_MAP_STYLE } from "./constants";
 import { MapProps } from "./types";
 import { useMapLayers } from "./hooks/useMapLayer";
 import transform from "@/components/map/utils/transform";
-import solarData from "@/constants/solar_plants/solar_projects.json";
+import solarData from "@/components/map/constants/solar_projects.json";
 import { useMapEvents } from "./hooks/useMapEvents";
+import { useRouter } from "next/navigation";
 
 const Map: React.FC<MapProps> = ({
   initialCenter = INITIAL_MAP_CONFIG.center,
   initialZoom = INITIAL_MAP_CONFIG.zoom,
   initialPitch = INITIAL_MAP_CONFIG.zoom,
 }) => {
+  const router = useRouter();
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   const [coordinates, setCoordinates] = useState<Position[]>([]);
@@ -29,14 +31,20 @@ const Map: React.FC<MapProps> = ({
   const [area, setArea] = useState<number | null>(null);
 
   useEffect(() => {
-    if (mapRef.current || !mapContainer.current) return;
+    // Clean up any existing map instance
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    if (!mapContainer.current) return;
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
+      style: BASE_MAP_STYLE,
       center: center,
       zoom: zoom,
       pitch: pitch,
-      style: BASE_MAP_STYLE,
       maxZoom: 18,
       maxPitch: 85,
       minZoom: 5,
@@ -46,7 +54,6 @@ const Map: React.FC<MapProps> = ({
 
     map.on("load", () => {
       const geoJson = transform(solarData);
-      // Add solar data source and layer
       map.addSource("places", {
         type: "geojson",
         data: geoJson,
@@ -80,7 +87,6 @@ const Map: React.FC<MapProps> = ({
         },
       });
 
-      // Add popup functionality
       const popup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
@@ -132,9 +138,10 @@ const Map: React.FC<MapProps> = ({
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
+        mapRef.current = null;
       }
     };
-  }, [initialCenter, initialZoom, initialPitch]);
+  }, [router.asPath]); 
 
   useMapEvents({
     mapRef,

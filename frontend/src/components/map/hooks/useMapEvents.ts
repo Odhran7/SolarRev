@@ -5,7 +5,7 @@ import { UseMapEventsProps } from "../types";
 import { MaplibreMeasureControl } from "@watergis/maplibre-gl-terradraw";
 import { LngLatLike } from "maplibre-gl";
 
-type FeatureId = string | number
+type FeatureId = string | number;
 
 export function useMapEvents({
   mapRef,
@@ -39,18 +39,29 @@ export function useMapEvents({
     setArea(area);
     const bbox = turf.bbox(polygon);
     let zoom;
-    if (area < 1000) {
-      zoom = 20;
-    } else if (area < 10000) {
-      zoom = 18;
+    if (area < 10000) {
+      // < 1 hectare
+      zoom = 17;
     } else if (area < 100000) {
+      // < 10 hectares
       zoom = 16;
+    } else if (area < 500000) {
+      // < 50 hectares
+      zoom = 15;
     } else if (area < 1000000) {
-      zoom = 12;
+      // < 100 hectares
+      zoom = 14;
+    } else if (area < 2000000) {
+      // < 200 hectares
+      zoom = 13;
+    } else if (area < 5000000) {
+      // < 500 hectares
+      zoom = 13;
     } else if (area < 10000000) {
-      zoom = 10;
+      // < 1000 hectares
+      zoom = 12;
     } else {
-      zoom = 8;
+      zoom = 10;
     }
     let pitch;
     if (zoom >= 16) {
@@ -82,14 +93,14 @@ export function useMapEvents({
       modes: ["polygon", "delete"],
       open: true,
     });
-    
+
     map.addControl(drawControl, "top-left");
     const drawInstance = drawControl.getTerraDrawInstance();
-    
+
     const handleFinish = (id: FeatureId) => {
       const snapshot = drawInstance?.getSnapshot();
       const feature = snapshot?.find((feature) => feature.id === id);
-      
+
       if (
         feature?.geometry?.type === "Polygon" &&
         Array.isArray(feature.geometry.coordinates) &&
