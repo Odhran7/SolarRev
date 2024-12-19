@@ -9,24 +9,20 @@ import "@watergis/maplibre-gl-terradraw/dist/maplibre-gl-terradraw.css";
 import { Position } from "geojson";
 import * as turf from "@turf/turf";
 import { LngLatLike } from "maplibre-gl";
-import Legend from "./Legend";
+import Legend from "./components/Legend";
 import { CoordinateDisplay } from "./components/CoordinateDisplay";
+import { INITIAL_MAP_CONFIG } from "./constants";
+import { MapProps } from "./types";
+import { useMapLayers } from "./hooks/useMapLayer";
 // Geojson data
 import transform from "@/utils/transform";
 import solarData from "@/constants/solar_plants/solar_projects.json";
 const geoJson = transform(solarData);
 
-interface MapProps {
-  initialCenter?: [number, number];
-  initialZoom?: number;
-  initialPitch?: number;
-  bounds?: [number, number, number, number];
-}
-
 const Map: React.FC<MapProps> = ({
-  initialCenter = [-8.2439, 53.4129],
-  initialZoom = 7,
-  initialPitch = 45,
+  initialCenter = INITIAL_MAP_CONFIG.center,
+  initialZoom = INITIAL_MAP_CONFIG.zoom,
+  initialPitch = INITIAL_MAP_CONFIG.zoom,
 }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
@@ -35,8 +31,6 @@ const Map: React.FC<MapProps> = ({
   const [center, setCenter] = useState(initialCenter);
   const [pitch, setPitch] = useState(initialPitch);
   const [area, setArea] = useState<number | null>(null);
-  const [showPower, setShowPower] = useState(false);
-  const [showSubstation, setShowSubstation] = useState(false);
 
   const findPolygonCenter = (coords: Position[]) => {
     const closedCoords =
@@ -163,7 +157,6 @@ const Map: React.FC<MapProps> = ({
         type: "circle",
         source: "places",
         paint: {
-          // Size based on MW capacity
           "circle-radius": [
             "interpolate",
             ["linear"],
@@ -321,21 +314,8 @@ const Map: React.FC<MapProps> = ({
     };
   }, [initialCenter, initialZoom, initialPitch]);
 
-  // Layer toggling
-  useEffect(() => {
-    if (!mapRef.current?.isStyleLoaded()) return;
-    mapRef.current?.setLayoutProperty(
-      "power-lines",
-      "visibility",
-      showPower ? "visible" : "none"
-    );
-    mapRef.current?.setLayoutProperty(
-      "substations",
-      "visibility",
-      showSubstation ? "visible" : "none"
-    );
-  }, [showPower, showSubstation]);
-
+  const { setShowPower, setShowSubstation } =
+    useMapLayers(mapRef);
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />

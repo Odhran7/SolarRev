@@ -1,6 +1,6 @@
 // Legend.tsx
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckboxWithText } from "../ui/checkboxWithText";
+import { CheckboxWithText } from "../../ui/checkboxWithText";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
