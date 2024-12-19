@@ -4,21 +4,16 @@ import React, { useEffect, useRef, useState } from "react";
 import maplibregl, { Map as MaplibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
-import { MaplibreMeasureControl } from "@watergis/maplibre-gl-terradraw";
 import "@watergis/maplibre-gl-terradraw/dist/maplibre-gl-terradraw.css";
 import { Position } from "geojson";
-import * as turf from "@turf/turf";
-import { LngLatLike } from "maplibre-gl";
 import Legend from "./components/Legend";
 import { CoordinateDisplay } from "./components/CoordinateDisplay";
-import { INITIAL_MAP_CONFIG } from "./constants";
+import { INITIAL_MAP_CONFIG, BASE_MAP_STYLE } from "./constants";
 import { MapProps } from "./types";
 import { useMapLayers } from "./hooks/useMapLayer";
-// Geojson data
 import transform from "@/utils/transform";
 import solarData from "@/constants/solar_plants/solar_projects.json";
 import { useMapEvents } from "./hooks/useMapEvents";
-const geoJson = transform(solarData);
 
 const Map: React.FC<MapProps> = ({
   initialCenter = INITIAL_MAP_CONFIG.center,
@@ -41,39 +36,7 @@ const Map: React.FC<MapProps> = ({
       center: center,
       zoom: zoom,
       pitch: pitch,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "&copy; OpenStreetMap Contributors",
-            maxzoom: 19,
-          },
-          terrainSource: {
-            type: "raster-dem",
-            tiles: [
-              "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
-            ],
-            encoding: "terrarium",
-            tileSize: 256,
-          },
-        },
-        glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
-        layers: [
-          {
-            id: "osm",
-            type: "raster",
-            source: "osm",
-          },
-        ],
-        terrain: {
-          source: "terrainSource",
-          exaggeration: 2,
-        },
-        sky: {},
-      },
+      style: BASE_MAP_STYLE,
       maxZoom: 18,
       maxPitch: 85,
       minZoom: 5,
@@ -81,9 +44,9 @@ const Map: React.FC<MapProps> = ({
 
     mapRef.current = map;
 
-    map.on("load", async () => {
-      // Todo add pvout layer^^
-      // Adding the markers
+    map.on("load", () => {
+      const geoJson = transform(solarData);
+      // Add solar data source and layer
       map.addSource("places", {
         type: "geojson",
         data: geoJson,
@@ -98,70 +61,31 @@ const Map: React.FC<MapProps> = ({
             "interpolate",
             ["linear"],
             ["get", "capacity"],
-            0,
-            5,
-            50,
-            10,
-            100,
-            15,
+            0, 5,
+            50, 10,
+            100, 15
           ],
           "circle-color": [
             "match",
             ["get", "status"],
-            "operating",
-            "#22c55e",
-            "construction",
-            "#eab308",
-            "announced",
-            "#3b82f6",
-            "pre-construction",
-            "#3b82f6",
-            "shelved",
-            "#ef4444",
-            "#94a3b8",
+            "operating", "#22c55e",
+            "construction", "#eab308",
+            "announced", "#3b82f6",
+            "pre-construction", "#3b82f6",
+            "shelved", "#ef4444",
+            "#94a3b8"
           ],
           "circle-stroke-width": 2,
           "circle-stroke-color": "white",
         },
       });
-      map.addSource("openinframap", {
-        type: "vector",
-        tiles: ["https://openinframap.org/tiles/{z}/{x}/{y}.pbf"],
-        minzoom: 0,
-        maxzoom: 14,
-      });
-      map.addLayer({
-        id: "substations",
-        source: "openinframap",
-        "source-layer": "power_substation",
-        layout: {
-          visibility: "none",
-        },
-        minzoom: 10,
-        type: "circle",
-        paint: {
-          "circle-color": "#0000ff",
-          "circle-radius": 6,
-        },
-      });
-      // Power lines
-      map.addLayer({
-        id: "power-lines",
-        source: "openinframap",
-        "source-layer": "power_line",
-        type: "line",
-        layout: {
-          visibility: "none",
-        },
-        paint: {
-          "line-color": "#ff0000",
-          "line-width": 2,
-        },
-      });
+
+      // Add popup functionality
       const popup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
       });
+      
       map.on("mouseleave", "places", () => {
         map.getCanvas().style.cursor = "";
         popup.remove();
@@ -177,7 +101,6 @@ const Map: React.FC<MapProps> = ({
         popup.setLngLat(coordinates).setHTML(description).addTo(map);
       });
     });
-
 
     map.addControl(
       new maplibregl.NavigationControl({
@@ -223,6 +146,7 @@ const Map: React.FC<MapProps> = ({
   });
 
   const { setShowPower, setShowSubstation } = useMapLayers(mapRef);
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
