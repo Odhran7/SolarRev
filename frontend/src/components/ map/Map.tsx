@@ -10,6 +10,7 @@ import { Position } from "geojson";
 import * as turf from "@turf/turf";
 import { LngLatLike } from "maplibre-gl";
 import Legend from "./Legend";
+import { CoordinateDisplay } from "./components/CoordinateDisplay";
 // Geojson data
 import transform from "@/utils/transform";
 import solarData from "@/constants/solar_plants/solar_projects.json";
@@ -68,11 +69,11 @@ const Map: React.FC<MapProps> = ({
     } else if (area < 100000) {
       zoom = 16;
     } else if (area < 1000000) {
-      zoom = 14;
-    } else if (area < 10000000) {
       zoom = 12;
-    } else {
+    } else if (area < 10000000) {
       zoom = 10;
+    } else {
+      zoom = 8;
     }
     let pitch;
     if (zoom >= 16) {
@@ -343,12 +344,12 @@ const Map: React.FC<MapProps> = ({
         handleSubstation={setShowSubstation}
       />
       {coordinates.length > 0 && (
-        <div className="absolute top-4 left-24 bg-white p-2 rounded shadow z-20 w-full">
-          <div>Coordinates: {coordinates.toString()}</div>
-          <div>Pitch: {pitch}°</div>
-          <div>Zoom: {zoom}</div>
-          {area && <div>Area: {area}</div>}
-        </div>
+        <CoordinateDisplay
+          coordinates={coordinates}
+          pitch={pitch}
+          zoom={zoom}
+          area={area}
+        />
       )}
     </div>
   );
