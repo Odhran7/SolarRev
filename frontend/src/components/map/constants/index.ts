@@ -1,4 +1,5 @@
 import "maplibre-gl/dist/maplibre-gl.css";
+import { StyleSpecification } from "maplibre-gl";
 
 export const INITIAL_MAP_CONFIG = {
   center: [-8.2439, 53.4129] as [number, number],

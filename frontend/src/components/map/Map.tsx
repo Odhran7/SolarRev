@@ -11,7 +11,7 @@ import { CoordinateDisplay } from "./components/CoordinateDisplay";
 import { INITIAL_MAP_CONFIG, BASE_MAP_STYLE } from "./constants";
 import { MapProps } from "./types";
 import { useMapLayers } from "./hooks/useMapLayer";
-import transform from "@/utils/transform";
+import transform from "@/components/map/utils/transform";
 import solarData from "@/constants/solar_plants/solar_projects.json";
 import { useMapEvents } from "./hooks/useMapEvents";
 
