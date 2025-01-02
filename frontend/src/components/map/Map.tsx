@@ -5,7 +5,7 @@ import maplibregl, { Map as MaplibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import "@watergis/maplibre-gl-terradraw/dist/maplibre-gl-terradraw.css";
-import { Position } from "geojson";
+import { FeatureCollection, Position } from "geojson";
 import Legend from "./components/Legend";
 import { CoordinateDisplay } from "./components/CoordinateDisplay";
 import { INITIAL_MAP_CONFIG, BASE_MAP_STYLE } from "./constants";
@@ -14,14 +14,14 @@ import { useMapLayers } from "./hooks/useMapLayer";
 import transform from "@/components/map/utils/transform";
 import solarData from "@/components/map/constants/solar_projects.json";
 import { useMapEvents } from "./hooks/useMapEvents";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 const Map: React.FC<MapProps> = ({
   initialCenter = INITIAL_MAP_CONFIG.center,
   initialZoom = INITIAL_MAP_CONFIG.zoom,
   initialPitch = INITIAL_MAP_CONFIG.zoom,
 }) => {
-  const router = useRouter();
+  const pathname = usePathname();
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   const [coordinates, setCoordinates] = useState<Position[]>([]);
@@ -31,7 +31,6 @@ const Map: React.FC<MapProps> = ({
   const [area, setArea] = useState<number | null>(null);
 
   useEffect(() => {
-    // Clean up any existing map instance
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
@@ -56,7 +55,7 @@ const Map: React.FC<MapProps> = ({
       const geoJson = transform(solarData);
       map.addSource("places", {
         type: "geojson",
-        data: geoJson,
+        data: geoJson as FeatureCollection,
       });
 
       map.addLayer({
@@ -68,19 +67,27 @@ const Map: React.FC<MapProps> = ({
             "interpolate",
             ["linear"],
             ["get", "capacity"],
-            0, 5,
-            50, 10,
-            100, 15
+            0,
+            5,
+            50,
+            10,
+            100,
+            15,
           ],
           "circle-color": [
             "match",
             ["get", "status"],
-            "operating", "#22c55e",
-            "construction", "#eab308",
-            "announced", "#3b82f6",
-            "pre-construction", "#3b82f6",
-            "shelved", "#ef4444",
-            "#94a3b8"
+            "operating",
+            "#22c55e",
+            "construction",
+            "#eab308",
+            "announced",
+            "#3b82f6",
+            "pre-construction",
+            "#3b82f6",
+            "shelved",
+            "#ef4444",
+            "#94a3b8",
           ],
           "circle-stroke-width": 2,
           "circle-stroke-color": "white",
@@ -91,16 +98,22 @@ const Map: React.FC<MapProps> = ({
         closeButton: false,
         closeOnClick: false,
       });
-      
+
       map.on("mouseleave", "places", () => {
         map.getCanvas().style.cursor = "";
         popup.remove();
       });
-
       map.on("mouseenter", "places", (e) => {
-        map.getCanvas().style.cursor = "pointer";
-        const coordinates = e.features[0].geometry.coordinates.slice();
-        const description = e.features[0].properties.description;
+        if (!e.features || !e.features[0]) return;
+
+        const feature = e.features[0];
+        const geometry = feature.geometry as GeoJSON.Point;
+        const description = feature.properties?.description || "";
+        const coordinates: [number, number] = [
+          geometry.coordinates[0],
+          geometry.coordinates[1],
+        ];
+
         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
           coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
@@ -141,7 +154,7 @@ const Map: React.FC<MapProps> = ({
         mapRef.current = null;
       }
     };
-  }, [router.asPath]); 
+  }, [pathname]);
 
   useMapEvents({
     mapRef,
